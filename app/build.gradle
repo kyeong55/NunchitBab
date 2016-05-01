@@ -1,6 +1,9 @@
 apply plugin: 'com.android.application'
+// For Andorid Annotation
 apply plugin: 'android-apt'
 def AAVersion = '4.0.0'
+// For Realm Database
+apply plugin: 'realm-android'
 
 android {
     compileSdkVersion 23
