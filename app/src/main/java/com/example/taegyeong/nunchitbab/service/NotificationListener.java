@@ -9,6 +9,12 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
+import com.example.taegyeong.nunchitbab.model.Bab;
+
+import org.androidannotations.annotations.Background;
+
+import io.realm.Realm;
+
 public class NotificationListener extends NotificationListenerService {
 
 //    public NotificationListenService() {
@@ -67,5 +73,25 @@ public class NotificationListener extends NotificationListenerService {
     @Override
     public StatusBarNotification[] getActiveNotifications() {
         return super.getActiveNotifications();
+    }
+
+    @Background
+    protected void save(String type, String value) {
+        long timestamp = System.currentTimeMillis();
+        Realm realm = Realm.getDefaultInstance();
+
+        // [BEGIN] Realm Transaction
+        realm.beginTransaction();
+
+        Bab bab = realm.createObject(Bab.class);
+        bab.setType(type);
+        bab.setTimestamp(timestamp);
+        // todo: change to json appropriately
+        bab.setJson(value);
+
+        realm.commitTransaction();
+        // [COMMIT] Realm Transaction
+
+        realm.close();
     }
 }
