@@ -27,10 +27,6 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
-        <service
-            android:name=".service.EventHandleService"
-            android:enabled="true"
-            android:exported="true"></service>
     </application>
 
 </manifest>

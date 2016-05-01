@@ -1,8 +1,15 @@
 package com.example.taegyeong.nunchitbab.service;
 
+import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.Binder;
+import android.os.IBinder;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.service.notification.NotificationListenerService;
@@ -19,14 +26,25 @@ import io.realm.Realm;
 @EService
 public class NotificationListener extends NotificationListenerService {
 
-//    public NotificationListenService() {
-//    }
+    private SensorManager mSensorManager;
+    private Sensor proximitySensor;
+    private Sensor lightSensor;
+    private SensorEventListener proximityListener;
+    private SensorEventListener lightListener;
 
-//    @Override
-//    public IBinder onBind(Intent intent) {
-//        // TODO: Return the communication channel to the service.
-//        throw new UnsupportedOperationException("Not yet implemented");
-//    }
+    private final IBinder mBinder = new NotificationListenBinder();
+
+    public class NotificationListenBinder extends Binder {
+
+        public NotificationListener getService() {
+            return NotificationListener.this;
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
 
     @Override
     public void onCreate() {
@@ -52,11 +70,17 @@ public class NotificationListener extends NotificationListenerService {
                 AudioManager.RINGER_MODE_CHANGED_ACTION);
         registerReceiver(receiver,filter);
         Log.d("testing", "service created");
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        proximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        defineSensorListeners();
+        registerSensor();
     }
 
     @Override
     public void onDestroy(){
         Log.d("testing", "service destroyed");
+        unregisterSensor();
         super.onDestroy();
     }
 
@@ -75,6 +99,37 @@ public class NotificationListener extends NotificationListenerService {
     @Override
     public StatusBarNotification[] getActiveNotifications() {
         return super.getActiveNotifications();
+    }
+
+    private void defineSensorListeners(){
+        proximityListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                float proximityDistance = event.values[0];
+                Log.d("debugging","proximity sensor changed: "+proximityDistance+"(cm)");
+            }
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        };
+        lightListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                float lightLevel = event.values[0];
+                Log.d("debugging","light sensor changed: "+lightLevel+"(lx)");
+            }
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        };
+    }
+
+    public void registerSensor(){
+        mSensorManager.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    public void unregisterSensor(){
+        mSensorManager.unregisterListener(proximityListener);
+        mSensorManager.unregisterListener(lightListener);
     }
 
     @Background

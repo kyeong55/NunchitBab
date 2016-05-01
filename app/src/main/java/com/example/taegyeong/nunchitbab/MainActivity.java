@@ -15,7 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
 
-import com.example.taegyeong.nunchitbab.service.EventHandleService;
+import com.example.taegyeong.nunchitbab.service.NotificationListener;
 
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
@@ -25,14 +25,11 @@ import org.androidannotations.annotations.ViewById;
 public class MainActivity extends AppCompatActivity {
 
     private Intent notificationSettingIntent;
-    private Intent eventHandleIntent;
-    private EventHandleService eventHandleService;
+    private Intent notificationListenerIntent;
+    private NotificationListener notificationListenerService;
 
     @ViewById(R.id.text_noti_list)
     TextView notiListTextView;
-
-    @ViewById(R.id.text_proxi_distance)
-    TextView proximityTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,9 +47,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(notificationSettingIntent);
             }
         });
-        eventHandleIntent = new Intent(this, EventHandleService.class);
-        startService(eventHandleIntent);
-        bindService(eventHandleIntent, eventHandleConnection, Context.BIND_AUTO_CREATE);
+        notificationListenerIntent = new Intent(this, NotificationListener.class);
+//        bindService(notificationListenerIntent, notificationListenerConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Click(R.id.bttn_make_noti)
@@ -72,26 +68,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy(){
-        stopService(eventHandleIntent);
-        unbindService(eventHandleConnection);
+//        unbindService(notificationListenerConnection);
         super.onDestroy();
     }
 
-    private ServiceConnection eventHandleConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            eventHandleService = ((EventHandleService.EventHandleBinder) service).getService();
-            eventHandleService.registerSensor(new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent event) {
-                    float proximityDistance = event.values[0];
-                    proximityTextView.setText("Proximity: "+proximityDistance+"cm");
-                }
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-            });
-        }
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {}
-    };
+//    private ServiceConnection notificationListenerConnection = new ServiceConnection() {
+//        @Override
+//        public void onServiceConnected(ComponentName className, IBinder service) {
+//            notificationListenerService = ((NotificationListener.NotificationListenBinder) service).getService();
+//        }
+//        @Override
+//        public void onServiceDisconnected(ComponentName arg0) {}
+//    };
 }
