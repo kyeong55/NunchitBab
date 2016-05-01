@@ -12,9 +12,11 @@ import android.util.Log;
 import com.example.taegyeong.nunchitbab.model.Bab;
 
 import org.androidannotations.annotations.Background;
+import org.androidannotations.annotations.EService;
 
 import io.realm.Realm;
 
+@EService
 public class NotificationListener extends NotificationListenerService {
 
 //    public NotificationListenService() {

@@ -8,8 +8,9 @@ import io.realm.annotations.Required;
  */
 public class Bab extends RealmObject {
 
-    @Required private String          type;
-    @Required private long            timestamp;
+    @Required
+    private String          type;
+    private long            timestamp;
 
     private String          json;
 
