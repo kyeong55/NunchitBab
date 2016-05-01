@@ -1,4 +1,4 @@
-package com.example.taegyeong.nunchitbab;
+package com.example.taegyeong.nunchitbab.service;
 
 import android.app.Notification;
 import android.app.Service;
