@@ -9,10 +9,19 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 
+import org.androidannotations.annotations.Click;
+import org.androidannotations.annotations.EActivity;
+import org.androidannotations.annotations.ViewById;
+
+@EActivity
 public class MainActivity extends AppCompatActivity {
 
     Intent NotificationSettingIntent;
+
+    @ViewById(R.id.text_noti_list)
+    TextView notiListTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,5 +39,15 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(NotificationSettingIntent);
             }
         });
+    }
+
+    @Click(R.id.bttn_make_noti)
+    protected void makeNotification() {
+        notiListTextView.setText("Make Notification Button");
+    }
+
+    @Click(R.id.bttn_list_noti)
+    protected void listNoticiation() {
+        notiListTextView.setText("Tagyeong so beautiful guy");
     }
 }
