@@ -7,16 +7,12 @@ import android.content.ServiceConnection;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.example.taegyeong.nunchitbab.service.EventHandleService;
@@ -24,7 +20,6 @@ import com.example.taegyeong.nunchitbab.service.EventHandleService;
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.ViewById;
-import org.androidannotations.annotations.UiThread;
 
 @EActivity
 public class MainActivity extends AppCompatActivity {
@@ -67,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Click(R.id.bttn_list_noti)
     protected void listNoticiation() {
+        notiListTextView.setText("Tagyeong so beautiful guy");
+    }
+
+    @Click(R.id.bttn_ringer)
+    protected void ringerNoti() {
         notiListTextView.setText("Tagyeong so beautiful guy");
     }
 

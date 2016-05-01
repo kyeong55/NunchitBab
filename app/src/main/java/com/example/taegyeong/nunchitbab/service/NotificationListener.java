@@ -1,15 +1,13 @@
 package com.example.taegyeong.nunchitbab.service;
 
-import android.app.Notification;
-import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.os.Bundle;
-import android.os.IBinder;
+import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
-import android.widget.Toast;
 
 public class NotificationListener extends NotificationListenerService {
 
@@ -26,6 +24,25 @@ public class NotificationListener extends NotificationListenerService {
     public void onCreate() {
         // 디바이스 설정=>일반=>보안=>알림 에서 해당 앱을 ON 시 서비스 시작됨
         super.onCreate();
+        BroadcastReceiver receiver = new BroadcastReceiver(){
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                AudioManager cRinger = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                switch (cRinger.getRingerMode()) {
+                    case AudioManager.RINGER_MODE_SILENT:
+                        Log.d("getRingerMode", "Silent");
+                        break;
+                    case AudioManager.RINGER_MODE_VIBRATE:
+                        Log.d("getRingerMode", "Vibrate");
+                        break;
+                    case AudioManager.RINGER_MODE_NORMAL:
+                        Log.d("getRingerMode", "Bell");
+                }
+            }
+        };
+        IntentFilter filter=new IntentFilter(
+                AudioManager.RINGER_MODE_CHANGED_ACTION);
+        registerReceiver(receiver,filter);
         Log.d("testing", "service created");
     }
 
