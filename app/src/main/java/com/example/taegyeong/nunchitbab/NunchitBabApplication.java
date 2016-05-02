@@ -16,6 +16,7 @@ public class NunchitBabApplication extends Application {
         // Realm Configuration
         RealmConfiguration config = new RealmConfiguration.Builder(this)
                 .name("nunchitbab.realm")
+                .deleteRealmIfMigrationNeeded()
                 .build();
         Realm.setDefaultConfiguration(config);
     }

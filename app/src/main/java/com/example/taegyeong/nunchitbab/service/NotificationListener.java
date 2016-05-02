@@ -20,6 +20,8 @@ import com.example.taegyeong.nunchitbab.model.Bab;
 
 import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.EService;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import io.realm.Realm;
 
@@ -75,11 +77,13 @@ public class NotificationListener extends NotificationListenerService {
         lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         defineSensorListeners();
         registerSensor();
+        save("nunchitbab_start", new JSONObject());
     }
 
     @Override
     public void onDestroy(){
         Log.d("testing", "service destroyed");
+        save("nunchitbab_end", new JSONObject());
         unregisterSensor();
         super.onDestroy();
     }
@@ -88,12 +92,28 @@ public class NotificationListener extends NotificationListenerService {
     public void onNotificationPosted(StatusBarNotification sbn) {
         // Notification 추가시 Callback
         Log.d("testing", "onNotificationPosted");
+        JSONObject json = new JSONObject();
+        try {
+            json.put("package", sbn.getPackageName());
+            json.put("posttime", sbn.getPostTime());
+            save("noti_removed", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
         // Notification 제거시 Callback
         Log.d("testing", "onNotificationRemoved");
+        JSONObject json = new JSONObject();
+        try {
+            json.put("package", sbn.getPackageName());
+            json.put("posttime", sbn.getPostTime());
+            save("noti_removed", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -107,6 +127,13 @@ public class NotificationListener extends NotificationListenerService {
             public void onSensorChanged(SensorEvent event) {
                 float proximityDistance = event.values[0];
                 Log.d("debugging","proximity sensor changed: "+proximityDistance+"(cm)");
+                JSONObject json = new JSONObject();
+                try {
+                    json.put("distance", proximityDistance);
+                    save("proximity", json);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
             @Override
             public void onAccuracyChanged(Sensor sensor, int accuracy) {}
@@ -116,6 +143,13 @@ public class NotificationListener extends NotificationListenerService {
             public void onSensorChanged(SensorEvent event) {
                 float lightLevel = event.values[0];
                 Log.d("debugging","light sensor changed: "+lightLevel+"(lx)");
+                JSONObject json = new JSONObject();
+                try {
+                    json.put("level", lightLevel);
+                    save("light", json);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
             @Override
             public void onAccuracyChanged(Sensor sensor, int accuracy) {}
@@ -133,7 +167,7 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Background
-    protected void save(String type, String value) {
+    protected void save(String type, JSONObject json) {
         long timestamp = System.currentTimeMillis();
         Realm realm = Realm.getDefaultInstance();
 
@@ -143,8 +177,7 @@ public class NotificationListener extends NotificationListenerService {
         Bab bab = realm.createObject(Bab.class);
         bab.setType(type);
         bab.setTimestamp(timestamp);
-        // todo: change to json appropriately
-        bab.setJson(value);
+        bab.setJson(json.toString());
 
         realm.commitTransaction();
         // [COMMIT] Realm Transaction

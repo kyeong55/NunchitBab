@@ -22,14 +22,14 @@
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/bttn_list_noti"
-        android:text="List Notification" />
+        android:id="@+id/bttn_delete_db"
+        android:text="Delete Database" />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/bttn_ringer"
-        android:text="Ringer State" />
+        android:id="@+id/bttn_backup_db"
+        android:text="Back Up Database" />
 
     <TextView
         android:layout_width="match_parent"

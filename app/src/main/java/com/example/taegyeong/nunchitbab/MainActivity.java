@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
@@ -17,9 +18,17 @@ import android.widget.TextView;
 
 import com.example.taegyeong.nunchitbab.service.NotificationListener;
 
+import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.ViewById;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import io.realm.Realm;
 
 @EActivity
 public class MainActivity extends AppCompatActivity {
@@ -56,28 +65,48 @@ public class MainActivity extends AppCompatActivity {
         notiListTextView.setText("Make Notification Button");
     }
 
-    @Click(R.id.bttn_list_noti)
-    protected void listNoticiation() {
-        notiListTextView.setText("Tagyeong so beautiful guy");
+    @Click(R.id.bttn_delete_db)
+    @Background
+    protected void deleteDatabase() {
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+        realm.deleteAll();
+        realm.commitTransaction();
+        realm.close();
     }
 
-    @Click(R.id.bttn_ringer)
-    protected void ringerNoti() {
-        notiListTextView.setText("Tagyeong so beautiful guy");
+    @Click(R.id.bttn_backup_db)
+    @Background
+    protected void backupDatabase() {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss").format(new Date());
+        File cacheDir = getExternalCacheDir();
+        File backupRealm = new File(cacheDir, "nunchitbab_" + timestamp + ".realm");
+        Uri backupPath = Uri.fromFile(backupRealm);
+        backupRealm.deleteOnExit();
+
+        Realm realm = Realm.getDefaultInstance();
+        try {
+            realm.writeCopyTo(backupRealm);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            realm.close();
+        }
+
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("vnd.android.cursor.dir/email");
+        String to[] = {"youngjae.chang@kaist.ac.kr",
+                "chemidong@kaist.ac.kr",
+                "danny003@kaist.ac.kr"};
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, to);
+        emailIntent.putExtra(Intent.EXTRA_STREAM, backupPath);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "[Nunchitbab] Captured at " + timestamp);
+        startActivity(Intent.createChooser(emailIntent , "Submit backup via ..."));
     }
 
     @Override
     protected void onDestroy(){
-//        unbindService(notificationListenerConnection);
         super.onDestroy();
     }
 
-//    private ServiceConnection notificationListenerConnection = new ServiceConnection() {
-//        @Override
-//        public void onServiceConnected(ComponentName className, IBinder service) {
-//            notificationListenerService = ((NotificationListener.NotificationListenBinder) service).getService();
-//        }
-//        @Override
-//        public void onServiceDisconnected(ComponentName arg0) {}
-//    };
 }
