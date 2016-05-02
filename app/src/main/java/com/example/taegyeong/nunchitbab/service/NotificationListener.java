@@ -2,7 +2,6 @@ package com.example.taegyeong.nunchitbab.service;
 
 import android.content.Context;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -29,8 +28,11 @@ import io.realm.Realm;
 @EService
 public class NotificationListener extends NotificationListenerService {
 
+    //TODO: decide sample period of sensor in microseconds
+    private final int SAMPLE_PERIOD_US = 1000;
+
     private BroadcastReceiver ringerReceiver;
-    private BroadcastReceiver batteryReceiver;
+    private BroadcastReceiver mBroadcastReceiver;
 
     private SensorManager mSensorManager;
     private SensorEventListener proximityListener;
@@ -60,7 +62,7 @@ public class NotificationListener extends NotificationListenerService {
         defineSensorListeners();
         save("nunchitbab_start", new JSONObject());
         registerBroadcastReceiver();
-        registerSensorListener();
+        registerSensorListener(SAMPLE_PERIOD_US);
     }
 
     @Override
@@ -128,37 +130,48 @@ public class NotificationListener extends NotificationListenerService {
                 }
             }
         };
-        batteryReceiver = new BroadcastReceiver(){
+        mBroadcastReceiver = new BroadcastReceiver(){
             @Override
             public void onReceive(Context context, Intent intent) {
-                int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,BatteryManager.BATTERY_STATUS_UNKNOWN);
                 /**
                  * BATTERY_STATUS_UNKNOWN 1
                  * BATTERY_STATUS_CHARGING 2
                  * BATTERY_STATUS_DISCHARGING 3
                  * BATTERY_STATUS_NOT_CHARGING 4
                  * BATTERY_STATUS_FULL 5
+                 *
+                 * SCREEN_OFF 0
+                 * SCREEN_ON 1
                  * */
-                switch (batteryStatus){
-                    case BatteryManager.BATTERY_STATUS_CHARGING:
-                        Log.d("debugging", "battery charging");
-                        break;
-                    case BatteryManager.BATTERY_STATUS_DISCHARGING:
-                        Log.d("debugging", "battery discharging");
-                        break;
-                    case BatteryManager.BATTERY_STATUS_FULL:
-                        Log.d("debugging", "battery full");
-                        break;
-                    case BatteryManager.BATTERY_STATUS_NOT_CHARGING:
-                        Log.d("debugging", "battery not charging");
-                        break;
-                }
-                JSONObject json = new JSONObject();
-                try {
-                    json.put("status", batteryStatus);
-                    save("battery", json);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                String action = intent.getAction();
+                if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
+                    int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
+                    Log.d("debugging", "battery status " + batteryStatus);
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("status", batteryStatus);
+                        save("battery", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else if (action.equals(Intent.ACTION_SCREEN_OFF)){
+                    Log.d("debugging", "screen off");
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("on/off", 0);
+                        save("screen", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else if (action.equals(Intent.ACTION_SCREEN_ON)){
+                    Log.d("debugging", "screen on");
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("on/off", 1);
+                        save("screen", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
@@ -201,16 +214,20 @@ public class NotificationListener extends NotificationListenerService {
 
     public void registerBroadcastReceiver(){
         IntentFilter ringerFilter = new IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION);
-        IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        IntentFilter receiverFilter = new IntentFilter();
+        receiverFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
+        receiverFilter.addAction(Intent.ACTION_SCREEN_ON);
+        receiverFilter.addAction(Intent.ACTION_SCREEN_OFF);
+
         registerReceiver(ringerReceiver,ringerFilter);
-        registerReceiver(batteryReceiver,batteryFilter);
+        registerReceiver(mBroadcastReceiver,receiverFilter);
     }
 
-    public void registerSensorListener(){
+    public void registerSensorListener(int samplePeriod){
         Sensor proximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         Sensor lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-        mSensorManager.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
+        mSensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
     }
 
     public void unregisterAll(){
