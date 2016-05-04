@@ -34,6 +34,7 @@ public class NotificationListener extends NotificationListenerService {
     private BroadcastReceiver ringerReceiver;
     private BroadcastReceiver batteryReceiver;
     private BroadcastReceiver screenReceiver;
+    private BroadcastReceiver unlockReceiver;
 
     private SensorManager mSensorManager;
     private SensorEventListener proximityListener;
@@ -204,6 +205,20 @@ public class NotificationListener extends NotificationListenerService {
                 }
             }
         };
+
+        ////////////
+        // UNLOCK //
+        ////////////
+        unlockReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (action.equals(Intent.ACTION_USER_PRESENT)) {
+                    Log.d("debugging", "unlocked");
+                    save("unlock", new JSONObject());
+                }
+            }
+        };
     }
 
     private void defineSensorListeners(){
@@ -270,6 +285,10 @@ public class NotificationListener extends NotificationListenerService {
         callFilter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
         callFilter.addAction("android.intent.action.PHONE_STATE");
         // todo: register receiver
+
+        // UNLOCK
+        IntentFilter unlockFilter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+        registerReceiver(unlockReceiver, unlockFilter);
     }
 
     public void registerSensorListener(int samplePeriod){
