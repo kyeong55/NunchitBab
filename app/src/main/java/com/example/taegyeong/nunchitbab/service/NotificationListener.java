@@ -32,7 +32,8 @@ public class NotificationListener extends NotificationListenerService {
     private final int SAMPLE_PERIOD_US = 1000;
 
     private BroadcastReceiver ringerReceiver;
-    private BroadcastReceiver mBroadcastReceiver;
+    private BroadcastReceiver batteryReceiver;
+    private BroadcastReceiver screenReceiver;
 
     private SensorManager mSensorManager;
     private SensorEventListener proximityListener;
@@ -41,7 +42,6 @@ public class NotificationListener extends NotificationListenerService {
     private final IBinder mBinder = new NotificationListenBinder();
 
     public class NotificationListenBinder extends Binder {
-
         public NotificationListener getService() {
             return NotificationListener.this;
         }
@@ -56,11 +56,13 @@ public class NotificationListener extends NotificationListenerService {
     public void onCreate() {
         // 디바이스 설정=>일반=>보안=>알림 에서 해당 앱을 ON 시 서비스 시작됨
         super.onCreate();
+
         Log.d("testing", "service created");
-        defineBroadcastReceivers();
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        defineSensorListeners();
         save("nunchitbab_start", new JSONObject());
+
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        defineBroadcastReceivers();
+        defineSensorListeners();
         registerBroadcastReceiver();
         registerSensorListener(SAMPLE_PERIOD_US);
     }
@@ -68,8 +70,10 @@ public class NotificationListener extends NotificationListenerService {
     @Override
     public void onDestroy(){
         Log.d("testing", "service destroyed");
-        unregisterAll();
         save("nunchitbab_end", new JSONObject());
+
+        unregisterAll();
+
         super.onDestroy();
     }
 
@@ -107,87 +111,95 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     private void defineBroadcastReceivers() {
+
+        ////////////
+        // RINGER //
+        ////////////
         ringerReceiver = new BroadcastReceiver(){
             @Override
             public void onReceive(Context context, Intent intent) {
                 int ringerMode = ((AudioManager)context.getSystemService(Context.AUDIO_SERVICE))
                         .getRingerMode();
-                switch (ringerMode) {
-                    case AudioManager.RINGER_MODE_SILENT:
-                        Log.d("getRingerMode", "Silent");
-                        break;
-                    case AudioManager.RINGER_MODE_VIBRATE:
-                        Log.d("getRingerMode", "Vibrate");
-                        break;
-                    case AudioManager.RINGER_MODE_NORMAL:
-                        Log.d("getRingerMode", "Bell");
-                }
                 JSONObject json = new JSONObject();
                 try {
-                    json.put("mode", ringerMode);
+                    switch (ringerMode) {
+                        case AudioManager.RINGER_MODE_SILENT:
+                            Log.d("getRingerMode", "Silent");
+                            json.put("mode", "silent");
+                            break;
+                        case AudioManager.RINGER_MODE_VIBRATE:
+                            Log.d("getRingerMode", "Vibrate");
+                            json.put("mode", "vibrate");
+                            break;
+                        case AudioManager.RINGER_MODE_NORMAL:
+                            Log.d("getRingerMode", "Bell");
+                            json.put("mode", "bell");
+                            break;
+                    }
                     save("ringer", json);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         };
-        mBroadcastReceiver = new BroadcastReceiver(){
+
+        /////////////
+        // BATTERY //
+        /////////////
+        batteryReceiver = new BroadcastReceiver(){
             @Override
             public void onReceive(Context context, Intent intent) {
                 /**
-                 * BATTERY_STATUS_UNKNOWN 1
-                 * BATTERY_STATUS_CHARGING 2
-                 * BATTERY_STATUS_DISCHARGING 3
-                 * BATTERY_STATUS_NOT_CHARGING 4
-                 * BATTERY_STATUS_FULL 5
-                 *
-                 * SCREEN_OFF 0
-                 * SCREEN_ON 1
-                 */
+                 * BATTERY_STATUS_UNKNOWN       1
+                 * BATTERY_STATUS_CHARGING      2
+                 * BATTERY_STATUS_DISCHARGING   3
+                 * BATTERY_STATUS_NOT_CHARGING  4
+                 * BATTERY_STATUS_FULL          5
+                 * */
                 String action = intent.getAction();
-                switch (action) {
-                    case Intent.ACTION_BATTERY_CHANGED: {
-                        int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
-                                BatteryManager.BATTERY_STATUS_UNKNOWN);
-                        Log.d("debugging", "battery status " + batteryStatus);
-                        JSONObject json = new JSONObject();
-                        try {
-                            json.put("status", batteryStatus);
-                            save("battery", json);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
+                if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
+                    int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
+                            BatteryManager.BATTERY_STATUS_UNKNOWN);
+                    Log.d("debugging", "battery status " + batteryStatus);
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("status", batteryStatus);
+                        save("battery", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                    case Intent.ACTION_SCREEN_OFF: {
-                        Log.d("debugging", "screen off");
-                        JSONObject json = new JSONObject();
-                        try {
-                            json.put("on/off", 0);
-                            save("screen", json);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
+                }
+            }
+        };
+
+        ////////////
+        // SCREEN //
+        ////////////
+        screenReceiver = new BroadcastReceiver(){
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                /**
+                 * SCREEN_OFF   0
+                 * SCREEN_ON    1
+                 * */
+                String action = intent.getAction();
+                if (action.equals(Intent.ACTION_SCREEN_OFF)){
+                    Log.d("debugging", "screen off");
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("on/off", 0);
+                        save("screen", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                    case Intent.ACTION_SCREEN_ON: {
-                        Log.d("debugging", "screen on");
-                        JSONObject json = new JSONObject();
-                        try {
-                            json.put("on/off", 1);
-                            save("screen", json);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    }
-                    case Intent.ACTION_NEW_OUTGOING_CALL: {
-                        Log.d("phone call", "new outgoing call");
-                        break;
-                    }
-                    case "android.intent.action.PHONE_STATE": {
-                        Log.d("phone call", "phone state");
-                        break;
+                } else if (action.equals(Intent.ACTION_SCREEN_ON)){
+                    Log.d("debugging", "screen on");
+                    JSONObject json = new JSONObject();
+                    try {
+                        json.put("on/off", 1);
+                        save("screen", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -195,6 +207,10 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     private void defineSensorListeners(){
+
+        ///////////////
+        // PROXIMITY //
+        ///////////////
         proximityListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
@@ -211,6 +227,10 @@ public class NotificationListener extends NotificationListenerService {
             @Override
             public void onAccuracyChanged(Sensor sensor, int accuracy) {}
         };
+
+        ///////////
+        // LIGHT //
+        ///////////
         lightListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
@@ -230,30 +250,49 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     public void registerBroadcastReceiver(){
-        IntentFilter ringerFilter = new IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION);
-        IntentFilter receiverFilter = new IntentFilter();
-        receiverFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
-        receiverFilter.addAction(Intent.ACTION_SCREEN_ON);
-        receiverFilter.addAction(Intent.ACTION_SCREEN_OFF);
-        receiverFilter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
-        receiverFilter.addAction("android.intent.action.PHONE_STATE");
 
-        registerReceiver(ringerReceiver,ringerFilter);
-        registerReceiver(mBroadcastReceiver,receiverFilter);
+        // RINGER
+        IntentFilter ringerFilter = new IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION);
+        registerReceiver(ringerReceiver, ringerFilter);
+
+        // BATTERY
+        IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        registerReceiver(batteryReceiver, batteryFilter);
+
+        // SCREEN
+        IntentFilter screenFilter = new IntentFilter();
+        screenFilter.addAction(Intent.ACTION_SCREEN_ON);
+        screenFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(screenReceiver, batteryFilter);
+
+        // CALL
+        IntentFilter callFilter = new IntentFilter();
+        callFilter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
+        callFilter.addAction("android.intent.action.PHONE_STATE");
+        // todo: register receiver
     }
 
     public void registerSensorListener(int samplePeriod){
+
+        // PROXIMITY
         Sensor proximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-        Sensor lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         mSensorManager.registerListener(proximityListener, proximitySensor,
                 SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
+
+        // LIGHT
+        Sensor lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         mSensorManager.registerListener(lightListener, lightSensor,
                 SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
     }
 
     public void unregisterAll(){
+
+        // Broadcast Receiver
         unregisterReceiver(ringerReceiver);
-        unregisterReceiver(mBroadcastReceiver);
+        unregisterReceiver(batteryReceiver);
+        unregisterReceiver(screenReceiver);
+
+        // Sensor Listener
         mSensorManager.unregisterListener(proximityListener);
         mSensorManager.unregisterListener(lightListener);
     }
