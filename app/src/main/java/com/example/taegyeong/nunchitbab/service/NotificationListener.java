@@ -110,7 +110,8 @@ public class NotificationListener extends NotificationListenerService {
         ringerReceiver = new BroadcastReceiver(){
             @Override
             public void onReceive(Context context, Intent intent) {
-                int ringerMode = ((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).getRingerMode();
+                int ringerMode = ((AudioManager)context.getSystemService(Context.AUDIO_SERVICE))
+                        .getRingerMode();
                 switch (ringerMode) {
                     case AudioManager.RINGER_MODE_SILENT:
                         Log.d("getRingerMode", "Silent");
@@ -142,35 +143,51 @@ public class NotificationListener extends NotificationListenerService {
                  *
                  * SCREEN_OFF 0
                  * SCREEN_ON 1
-                 * */
+                 */
                 String action = intent.getAction();
-                if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
-                    int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
-                    Log.d("debugging", "battery status " + batteryStatus);
-                    JSONObject json = new JSONObject();
-                    try {
-                        json.put("status", batteryStatus);
-                        save("battery", json);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                switch (action) {
+                    case Intent.ACTION_BATTERY_CHANGED: {
+                        int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
+                                BatteryManager.BATTERY_STATUS_UNKNOWN);
+                        Log.d("debugging", "battery status " + batteryStatus);
+                        JSONObject json = new JSONObject();
+                        try {
+                            json.put("status", batteryStatus);
+                            save("battery", json);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
                     }
-                } else if (action.equals(Intent.ACTION_SCREEN_OFF)){
-                    Log.d("debugging", "screen off");
-                    JSONObject json = new JSONObject();
-                    try {
-                        json.put("on/off", 0);
-                        save("screen", json);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                    case Intent.ACTION_SCREEN_OFF: {
+                        Log.d("debugging", "screen off");
+                        JSONObject json = new JSONObject();
+                        try {
+                            json.put("on/off", 0);
+                            save("screen", json);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
                     }
-                } else if (action.equals(Intent.ACTION_SCREEN_ON)){
-                    Log.d("debugging", "screen on");
-                    JSONObject json = new JSONObject();
-                    try {
-                        json.put("on/off", 1);
-                        save("screen", json);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                    case Intent.ACTION_SCREEN_ON: {
+                        Log.d("debugging", "screen on");
+                        JSONObject json = new JSONObject();
+                        try {
+                            json.put("on/off", 1);
+                            save("screen", json);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    }
+                    case Intent.ACTION_NEW_OUTGOING_CALL: {
+                        Log.d("phone call", "new outgoing call");
+                        break;
+                    }
+                    case "android.intent.action.PHONE_STATE": {
+                        Log.d("phone call", "phone state");
+                        break;
                     }
                 }
             }
@@ -218,6 +235,8 @@ public class NotificationListener extends NotificationListenerService {
         receiverFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
         receiverFilter.addAction(Intent.ACTION_SCREEN_ON);
         receiverFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        receiverFilter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
+        receiverFilter.addAction("android.intent.action.PHONE_STATE");
 
         registerReceiver(ringerReceiver,ringerFilter);
         registerReceiver(mBroadcastReceiver,receiverFilter);
@@ -226,11 +245,15 @@ public class NotificationListener extends NotificationListenerService {
     public void registerSensorListener(int samplePeriod){
         Sensor proximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         Sensor lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-        mSensorManager.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
-        mSensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
+        mSensorManager.registerListener(proximityListener, proximitySensor,
+                SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
+        mSensorManager.registerListener(lightListener, lightSensor,
+                SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
     }
 
     public void unregisterAll(){
+        unregisterReceiver(ringerReceiver);
+        unregisterReceiver(mBroadcastReceiver);
         mSensorManager.unregisterListener(proximityListener);
         mSensorManager.unregisterListener(lightListener);
     }
