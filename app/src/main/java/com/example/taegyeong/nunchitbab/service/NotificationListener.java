@@ -52,6 +52,7 @@ public class NotificationListener extends NotificationListenerService {
     private SensorEventListener accelListener;
 
     private double lastMagAccel;
+    private int lastBatteryState;
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
@@ -187,6 +188,9 @@ public class NotificationListener extends NotificationListenerService {
                 if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
                     int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
                             BatteryManager.BATTERY_STATUS_UNKNOWN);
+                    if (batteryStatus == lastBatteryState)
+                        return;
+                    lastBatteryState = batteryStatus;
                     Log.d(DEBUGLOG_SENSOR, "battery status " + batteryStatus);
                     JSONObject json = new JSONObject();
                     try {
@@ -299,8 +303,7 @@ public class NotificationListener extends NotificationListenerService {
                 float yAccel = event.values[1];
                 float zAccel = event.values[2];
                 double magAccel = Math.sqrt(xAccel * xAccel + yAccel * yAccel + zAccel * zAccel);
-                if (Math.abs(magAccel - lastMagAccel) < 9.8) {
-                    lastMagAccel = magAccel;
+                if (Math.abs(magAccel - lastMagAccel) < 3.0) {
                     return;
                 }
                 lastMagAccel = magAccel;
