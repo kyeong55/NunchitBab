@@ -29,6 +29,8 @@ import io.realm.Realm;
 
 /**
  * Created by taegyeong on 16. 5. 19..
+ *
+ * Modified by Youngjae on 16. 5. 19..
  */
 @EService
 public class NotificationListener extends NotificationListenerService {
@@ -47,6 +49,7 @@ public class NotificationListener extends NotificationListenerService {
     private SensorManager mSensorManager;
     private SensorEventListener proximityListener;
     private SensorEventListener lightListener;
+    private SensorEventListener accelListener;
 
     private final IBinder mBinder = new NotificationListenBinder();
 
@@ -291,6 +294,32 @@ public class NotificationListener extends NotificationListenerService {
             @Override
             public void onAccuracyChanged(Sensor sensor, int accuracy) {}
         };
+
+        ///////////
+        // ACCEL //
+        ///////////
+        accelListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                float xAccel = event.values[0];
+                float yAccel = event.values[1];
+                float zAccel = event.values[2];
+                double magAccel = Math.sqrt(xAccel * xAccel + yAccel * yAccel + zAccel * zAccel);
+                Log.d(DEBUGLOG_SENSOR,"accel sensor changed: "+magAccel+"(m/s^2)");
+                JSONObject json = new JSONObject();
+                try {
+                    json.put("x", xAccel);
+                    json.put("y", yAccel);
+                    json.put("z", zAccel);
+                    json.put("mag", magAccel);
+                    save("accel", json);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        };
     }
 
     public void registerBroadcastReceiver(){
@@ -325,6 +354,11 @@ public class NotificationListener extends NotificationListenerService {
         Sensor lightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         mSensorManager.registerListener(lightListener, lightSensor,
                 SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
+
+        // ACCEL
+        Sensor accelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mSensorManager.registerListener(accelListener, accelSensor,
+                SensorManager.SENSOR_DELAY_NORMAL, samplePeriod);
     }
 
     public void unregisterAll(){
@@ -338,5 +372,6 @@ public class NotificationListener extends NotificationListenerService {
         // Sensor Listener
         mSensorManager.unregisterListener(proximityListener);
         mSensorManager.unregisterListener(lightListener);
+        mSensorManager.unregisterListener(accelListener);
     }
 }
