@@ -1,17 +1,19 @@
 package com.example.taegyeong.nunchitbab.service;
 
-import android.content.Context;
+import android.app.Notification;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
-import android.content.IntentFilter;
-import android.media.AudioManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
@@ -25,11 +27,17 @@ import org.json.JSONObject;
 
 import io.realm.Realm;
 
+/**
+ * Created by taegyeong on 16. 5. 19..
+ */
 @EService
 public class NotificationListener extends NotificationListenerService {
 
     //TODO: decide sample period of sensor in microseconds
     private final int SAMPLE_PERIOD_US = 1000;
+
+    private final String DEBUGLOG_NOTI = "notification_log";
+    private final String DEBUGLOG_SENSOR = "sensor_log";
 
     private BroadcastReceiver ringerReceiver;
     private BroadcastReceiver batteryReceiver;
@@ -49,16 +57,46 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
+    public void onNotificationPosted(StatusBarNotification sbn) {
+        Notification n = sbn.getNotification();
+        Log.d(DEBUGLOG_NOTI, "onNotificationPosted");
+        Notification mNotification=sbn.getNotification();
+        Bundle extras = mNotification.extras;
+        JSONObject json = new JSONObject();
+        try {
+            json.put("id", sbn.getId());
+            json.put("package", sbn.getPackageName());
+            json.put("posttime", sbn.getPostTime());
+            json.put("title", extras.getString(Notification.EXTRA_TITLE));
+            save("noti_posted", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onNotificationRemoved(StatusBarNotification sbn) {
+        Notification n = sbn.getNotification();
+        Log.d(DEBUGLOG_NOTI, "onNotificationRemoved");
+        Notification mNotification=sbn.getNotification();
+        Bundle extras = mNotification.extras;
+        JSONObject json = new JSONObject();
+        try {
+            json.put("id", sbn.getId());
+            json.put("package", sbn.getPackageName());
+            json.put("posttime", sbn.getPostTime());
+            json.put("title", extras.getString(Notification.EXTRA_TITLE));
+            save("noti_removed", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onCreate() {
-        // 디바이스 설정=>일반=>보안=>알림 에서 해당 앱을 ON 시 서비스 시작됨
         super.onCreate();
 
-        Log.d("testing", "service created");
+        Log.d(DEBUGLOG_NOTI, "service created");
         save("nunchitbab_start", new JSONObject());
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -70,7 +108,7 @@ public class NotificationListener extends NotificationListenerService {
 
     @Override
     public void onDestroy(){
-        Log.d("testing", "service destroyed");
+        Log.d(DEBUGLOG_NOTI, "service destroyed");
         save("nunchitbab_end", new JSONObject());
 
         unregisterAll();
@@ -79,36 +117,27 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Override
-    public void onNotificationPosted(StatusBarNotification sbn) {
-        // Notification 추가시 Callback
-        Log.d("testing", "onNotificationPosted");
-        JSONObject json = new JSONObject();
-        try {
-            json.put("package", sbn.getPackageName());
-            json.put("posttime", sbn.getPostTime());
-            save("noti_removed", json);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onNotificationRemoved(StatusBarNotification sbn) {
-        // Notification 제거시 Callback
-        Log.d("testing", "onNotificationRemoved");
-        JSONObject json = new JSONObject();
-        try {
-            json.put("package", sbn.getPackageName());
-            json.put("posttime", sbn.getPostTime());
-            save("noti_removed", json);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
     public StatusBarNotification[] getActiveNotifications() {
         return super.getActiveNotifications();
+    }
+
+    @Background
+    protected void save(String type, JSONObject json) {
+        long timestamp = System.currentTimeMillis();
+        Realm realm = Realm.getDefaultInstance();
+
+        // [BEGIN] Realm Transaction
+        realm.beginTransaction();
+
+        Bab bab = realm.createObject(Bab.class);
+        bab.setType(type);
+        bab.setTimestamp(timestamp);
+        bab.setJson(json.toString());
+
+        realm.commitTransaction();
+        // [COMMIT] Realm Transaction
+
+        realm.close();
     }
 
     private void defineBroadcastReceivers() {
@@ -161,7 +190,7 @@ public class NotificationListener extends NotificationListenerService {
                 if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
                     int batteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
                             BatteryManager.BATTERY_STATUS_UNKNOWN);
-                    Log.d("debugging", "battery status " + batteryStatus);
+                    Log.d(DEBUGLOG_SENSOR, "battery status " + batteryStatus);
                     JSONObject json = new JSONObject();
                     try {
                         json.put("status", batteryStatus);
@@ -185,19 +214,19 @@ public class NotificationListener extends NotificationListenerService {
                  * */
                 String action = intent.getAction();
                 if (action.equals(Intent.ACTION_SCREEN_OFF)){
-                    Log.d("debugging", "screen off");
+                    Log.d(DEBUGLOG_SENSOR, "screen off");
                     JSONObject json = new JSONObject();
                     try {
-                        json.put("on/off", 0);
+                        json.put("onoff", 0);
                         save("screen", json);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 } else if (action.equals(Intent.ACTION_SCREEN_ON)){
-                    Log.d("debugging", "screen on");
+                    Log.d(DEBUGLOG_SENSOR, "screen on");
                     JSONObject json = new JSONObject();
                     try {
-                        json.put("on/off", 1);
+                        json.put("onoff", 1);
                         save("screen", json);
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -214,7 +243,7 @@ public class NotificationListener extends NotificationListenerService {
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
                 if (action.equals(Intent.ACTION_USER_PRESENT)) {
-                    Log.d("debugging", "unlocked");
+                    Log.d(DEBUGLOG_SENSOR, "unlocked");
                     save("unlock", new JSONObject());
                 }
             }
@@ -230,7 +259,7 @@ public class NotificationListener extends NotificationListenerService {
             @Override
             public void onSensorChanged(SensorEvent event) {
                 float proximityDistance = event.values[0];
-                Log.d("debugging","proximity sensor changed: "+proximityDistance+"(cm)");
+                Log.d(DEBUGLOG_SENSOR,"proximity sensor changed: "+proximityDistance+"(cm)");
                 JSONObject json = new JSONObject();
                 try {
                     json.put("distance", proximityDistance);
@@ -250,7 +279,7 @@ public class NotificationListener extends NotificationListenerService {
             @Override
             public void onSensorChanged(SensorEvent event) {
                 float lightLevel = event.values[0];
-                Log.d("debugging","light sensor changed: "+lightLevel+"(lx)");
+                Log.d(DEBUGLOG_SENSOR,"light sensor changed: "+lightLevel+"(lx)");
                 JSONObject json = new JSONObject();
                 try {
                     json.put("level", lightLevel);
@@ -278,13 +307,7 @@ public class NotificationListener extends NotificationListenerService {
         IntentFilter screenFilter = new IntentFilter();
         screenFilter.addAction(Intent.ACTION_SCREEN_ON);
         screenFilter.addAction(Intent.ACTION_SCREEN_OFF);
-        registerReceiver(screenReceiver, batteryFilter);
-
-        // CALL
-        IntentFilter callFilter = new IntentFilter();
-        callFilter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
-        callFilter.addAction("android.intent.action.PHONE_STATE");
-        // todo: register receiver
+        registerReceiver(screenReceiver, screenFilter);
 
         // UNLOCK
         IntentFilter unlockFilter = new IntentFilter(Intent.ACTION_USER_PRESENT);
@@ -310,28 +333,10 @@ public class NotificationListener extends NotificationListenerService {
         unregisterReceiver(ringerReceiver);
         unregisterReceiver(batteryReceiver);
         unregisterReceiver(screenReceiver);
+        unregisterReceiver(unlockReceiver);
 
         // Sensor Listener
         mSensorManager.unregisterListener(proximityListener);
         mSensorManager.unregisterListener(lightListener);
-    }
-
-    @Background
-    protected void save(String type, JSONObject json) {
-        long timestamp = System.currentTimeMillis();
-        Realm realm = Realm.getDefaultInstance();
-
-        // [BEGIN] Realm Transaction
-        realm.beginTransaction();
-
-        Bab bab = realm.createObject(Bab.class);
-        bab.setType(type);
-        bab.setTimestamp(timestamp);
-        bab.setJson(json.toString());
-
-        realm.commitTransaction();
-        // [COMMIT] Realm Transaction
-
-        realm.close();
     }
 }

@@ -1,22 +1,13 @@
 package com.example.taegyeong.nunchitbab;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
-
-import com.example.taegyeong.nunchitbab.service.NotificationListener;
 
 import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.Click;
@@ -34,8 +25,6 @@ import io.realm.Realm;
 public class MainActivity extends AppCompatActivity {
 
     private Intent notificationSettingIntent;
-    private Intent notificationListenerIntent;
-    private NotificationListener notificationListenerService;
 
     @ViewById(R.id.text_noti_list)
     TextView notiListTextView;
@@ -56,8 +45,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(notificationSettingIntent);
             }
         });
-        notificationListenerIntent = new Intent(this, NotificationListener.class);
-//        bindService(notificationListenerIntent, notificationListenerConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Click(R.id.bttn_make_noti)
