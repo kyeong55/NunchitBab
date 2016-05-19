@@ -51,13 +51,7 @@ public class NotificationListener extends NotificationListenerService {
     private SensorEventListener lightListener;
     private SensorEventListener accelListener;
 
-    private final IBinder mBinder = new NotificationListenBinder();
-
-    public class NotificationListenBinder extends Binder {
-        public NotificationListener getService() {
-            return NotificationListener.this;
-        }
-    }
+    private double lastMagAccel;
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
@@ -305,6 +299,11 @@ public class NotificationListener extends NotificationListenerService {
                 float yAccel = event.values[1];
                 float zAccel = event.values[2];
                 double magAccel = Math.sqrt(xAccel * xAccel + yAccel * yAccel + zAccel * zAccel);
+                if (Math.abs(magAccel - lastMagAccel) < 9.8) {
+                    lastMagAccel = magAccel;
+                    return;
+                }
+                lastMagAccel = magAccel;
                 Log.d(DEBUGLOG_SENSOR,"accel sensor changed: "+magAccel+"(m/s^2)");
                 JSONObject json = new JSONObject();
                 try {
